@@ -10,13 +10,13 @@ from utils import SIGNS, onehot
 model = signclassifier().cuda()
 
 try:
-    model.load_state_dict(torch.load("saves/best.pt"))
+    model.load_state_dict(torch.load("saves/handsign.pt"))
 except:
     print("No model saved")
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
-drawing_styles = mp.solutions.drawing_styles
+mp_drawing_styles = mp.solutions.drawing_styles
 
 
 def eval_on_frame(data):
@@ -28,7 +28,7 @@ def eval_on_frame(data):
     out = model(data)
 
     # print(SIGNS[str(torch.argmax(out.squeeze(0)).item())])
-    return torch.argmax(out.squeeze(0)).item()
+    return torch.max(out.squeeze(0)).item(),torch.argmax(out.squeeze(0)).item()
 
 
 def save_frame(data, sign):
@@ -59,9 +59,11 @@ with mp_hands.Hands(
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(
-                    image, hand_landmarks, mp_hands.HAND_CONNECTIONS,
-                    drawing_styles.get_default_hand_landmark_style(),
-                    drawing_styles.get_default_hand_connection_style())
+                    image,
+                    hand_landmarks,
+                    mp_hands.HAND_CONNECTIONS,
+                    mp_drawing_styles.get_default_hand_landmarks_style(),
+                    mp_drawing_styles.get_default_hand_connections_style())
 
                 res.append([])
                 for j, landmark in enumerate(hand_landmarks.landmark):
@@ -73,9 +75,10 @@ with mp_hands.Hands(
         ids = []
         if res != []:
             for hand in res:
-                id = str(eval_on_frame(hand))
+                per, id = eval_on_frame(hand)
+                id = str(id)
                 if id in SIGNS:
-                    ids.append(SIGNS[id])
+                    ids.append(SIGNS[id] + " " + str(per))
                 else:
                     print(f"Id: {id} is not in the database")
             line = " | ".join(ids)
@@ -85,20 +88,22 @@ with mp_hands.Hands(
             fontScale = 0.8
             fontColor = (255, 255, 255)
             tickness = 2
-            cv2.putText(img=image,
-                        text=line,
-                        org=bottomLeftCornerOfText,
-                        fontFace=font,
-                        fontScale=fontScale,
-                        color=fontColor,
-                        thickness=tickness)
+            cv2.putText(
+                img=image,
+                text=line,
+                org=bottomLeftCornerOfText,
+                fontFace=font,
+                fontScale=fontScale,
+                color=fontColor,
+                thickness=tickness
+            )
 
         cv2.imshow('MediaPipe Hands', image)
 
-        if (key := (cv2.waitKey(5) & 0xFF)) != 255:
+        key = cv2.waitKey(5)
+        if key != -1:
             if res != []:
-                if key >= 48 and key < 59:
-                    save_frame(res[0], key-48)
+                save_frame(res[0], 0)
             if key == 27:
                 break
 

@@ -35,7 +35,7 @@ def train(epochs = 100):
     model = signclassifier().cuda()
 
     try:
-        model.load_state_dict(torch.load("saves/best.pt"))
+        model.load_state_dict(torch.load("saves/handsign.pt"))
     except:
         print("No model saved")
 
@@ -76,7 +76,7 @@ def train(epochs = 100):
                 )
 
         if acc > best_acc:
-            torch.save(model.state_dict(), "saves/best.pt")
+            torch.save(model.state_dict(), "saves/handsign.pt")
             tqdm.write('Saved best.')
             best_acc = acc
     # torch.save(model.state_dict(), f"saves/best.pt")

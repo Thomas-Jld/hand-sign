@@ -6,13 +6,13 @@ class signclassifier(nn.Module):
         super(signclassifier, self).__init__()
 
         self.func = nn.Sequential(
-            nn.Linear(21*2, 64),
+            nn.Linear(21*2, 128),
             nn.ReLU(inplace=True),
 
-            nn.Linear(64, 32),
+            nn.Linear(128, 64),
             nn.ReLU(inplace=True),
 
-            nn.Linear(32, 16),
+            nn.Linear(64, 16),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
