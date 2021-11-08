@@ -1,3 +1,5 @@
+import torch
+
 SIGNS = {
     "0": "OK",
     "1": "THUMB_UP",
@@ -10,7 +12,7 @@ SIGNS = {
     "8": "THUMB_DOWN",
     "9": "INDEX",
     "10": "MIDDLE",
-    "11": "LITTLE"
+    "11": "LITTLE",
 }
 
 

@@ -8,7 +8,8 @@ from model import signclassifier
 from data import SignCollection, load
 from utils import onehot
 
-
+import onnxruntime
+import numpy as np
 
 def train(epochs = 100):
     DATA = "data/trainning.csv"
@@ -82,3 +83,45 @@ def train(epochs = 100):
     # torch.save(model.state_dict(), f"saves/best.pt")
 
 train(1000)
+
+def export_to_onnx():
+    """ Exports the pytorch model to onnx """
+    DATA = "data/trainning.csv"
+    sign_data = load(DATA)
+    sign_collection = SignCollection(sign_data)
+
+    model = signclassifier()
+    model.load_state_dict(torch.load("saves/handsign.pt"))
+    model.eval()
+    input = sign_collection[2000][1]
+    torch_out = model(input)
+
+    torch.onnx.export(
+        model,
+        input,
+        "saves/handsign.onnx",
+        export_params=True,
+        opset_version=10,
+        do_constant_folding=True,
+        input_names = ['input'],
+        output_names = ['output'],
+        dynamic_axes={'input' : {0 : 'batch_size'},
+                    'output' : {0 : 'batch_size'}})
+
+    ort_session = onnxruntime.InferenceSession("saves/handsign.onnx")
+
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
+
+    # compute ONNX Runtime output prediction
+    ort_inputs = {ort_session.get_inputs()[0].name: to_numpy(input)}
+    ort_outs = ort_session.run(None, ort_inputs)
+
+    print(np.argmax(ort_outs[-1]))
+    print(torch.argmax(torch_out.squeeze(0)))
+    # compare ONNX Runtime and PyTorch results
+    np.testing.assert_allclose(to_numpy(torch_out), ort_outs[0], rtol=1e-03, atol=1e-05)
+
+    print("Exported model has been tested with ONNXRuntime, and the result looks good!")
+
+export_to_onnx()
