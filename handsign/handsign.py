@@ -1,18 +1,11 @@
-import cv2
+import cv2 as cv
 import mediapipe as mp
-import torch
-import torch.nn as nn
-from torch.optim import AdamW
+import numpy as np
+import onnxruntime
 
-from model import signclassifier
-from utils import SIGNS, onehot
+from utils import SIGNS, onehot, CameraVideoReader, IntelVideoReader
 
-model = signclassifier().cuda()
-
-try:
-    model.load_state_dict(torch.load("saves/handsign.pt"))
-except:
-    print("No model saved")
+model = onnxruntime.InferenceSession("saves/handsign.onnx")
 
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
@@ -20,15 +13,9 @@ mp_drawing_styles = mp.solutions.drawing_styles
 
 
 def eval_on_frame(data):
-    global model
-
-    model = model.eval()
-
-    data = torch.tensor(data).unsqueeze(0).cuda()
-    out = model(data)
-
-    # print(SIGNS[str(torch.argmax(out.squeeze(0)).item())])
-    return torch.max(out.squeeze(0)).item(),torch.argmax(out.squeeze(0)).item()
+    ort_inputs = {model.get_inputs()[0].name: np.array(data, dtype=np.float32)}
+    out = model.run(None, ort_inputs)[-1]
+    return float(np.max(out)), np.argmax(out)
 
 
 def save_frame(data, sign):
@@ -38,23 +25,22 @@ def save_frame(data, sign):
         f.write(line)
 
 
-cap = cv2.VideoCapture(0)
+# cap = CameraVideoReader()
+cap = IntelVideoReader()
+
 with mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5) as hands:
 
-    while cap.isOpened():
-        success, image = cap.read()
-        if not success:
-            print("Ignoring empty camera frame.")
-            continue
+    while 1:
+        image, _ = cap.next_frame()
 
-        image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
+        image = cv.cvtColor(cv.flip(image, 1), cv.COLOR_BGR2RGB)
         image.flags.writeable = False
         results = hands.process(image)
 
         image.flags.writeable = True
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        image = cv.cvtColor(image, cv.COLOR_RGB2BGR)
         res = []
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
@@ -83,12 +69,12 @@ with mp_hands.Hands(
                     print(f"Id: {id} is not in the database")
             line = " | ".join(ids)
 
-            font = cv2.FONT_HERSHEY_SIMPLEX
+            font = cv.FONT_HERSHEY_SIMPLEX
             bottomLeftCornerOfText = (20, 450)
             fontScale = 0.8
             fontColor = (255, 255, 255)
             tickness = 2
-            cv2.putText(
+            cv.putText(
                 img=image,
                 text=line,
                 org=bottomLeftCornerOfText,
@@ -98,13 +84,11 @@ with mp_hands.Hands(
                 thickness=tickness
             )
 
-        cv2.imshow('MediaPipe Hands', image)
+        cv.imshow('MediaPipe Hands', image)
 
-        key = cv2.waitKey(5)
+        key = cv.waitKey(5)
         if key != -1:
             if res != []:
                 save_frame(res[0], 0)
             if key == 27:
                 break
-
-cap.release()
