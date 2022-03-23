@@ -15,6 +15,7 @@ packaging==21.3
 Pillow==9.0.1
 protobuf==3.19.4
 pyparsing==3.0.7
+pyrealsense2==2.50.0.3812
 python-dateutil==2.8.2
 six==1.16.0
 torch==1.10.2+cu111
