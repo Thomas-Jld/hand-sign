@@ -13,9 +13,8 @@ import numpy as np
 
 def train(epochs = 100):
     DATA = "data/trainning.csv"
-    SIZE = 16
 
-    BATCH_SIZE = 256
+    BATCH_SIZE = 128
     NUM_WORKERS = 6
 
     EPOCHS = epochs
@@ -42,12 +41,13 @@ def train(epochs = 100):
 
     optim = AdamW(model.parameters(), lr=LR, weight_decay=DECAY)
 
-    criterion = nn.MSELoss().cuda()
+    # criterion = nn.MSELoss().cuda()
+    criterion = nn.CrossEntropyLoss().cuda()
+    # criterion = nn.BCELoss().cuda()
 
     best_acc = 0.0
 
-
-    for epoch in tqdm(range(EPOCHS), "Epoch", position=0, leave=True):
+    for epoch in tqdm(range(EPOCHS), "Epoch", position=1, leave=True):
 
         with tqdm(loader, f"Train [{epoch + 1}/{EPOCHS}]", position=0, leave=True) as pbar:
             total_loss = 0.0
@@ -67,9 +67,9 @@ def train(epochs = 100):
                 total_loss += loss.item() / len(loader)
 
                 acc += (
-                    torch.argmax(pred, dim=1) == torch.argmax(id, dim=1)
-                ).sum().item() / len(sign_data)
-
+                    # torch.argmax(torch.softmax(pred, 1), dim=1) == torch.argmax(id, dim=1)
+                    torch.argmax(torch.softmax(pred, 1), dim=1) == id
+                ).sum().item() / len(sign_collection)
 
                 pbar.set_postfix(
                     total_loss=total_loss,
@@ -82,7 +82,7 @@ def train(epochs = 100):
             best_acc = acc
     # torch.save(model.state_dict(), f"saves/best.pt")
 
-train(1000)
+train(300)
 
 def export_to_onnx():
     """ Exports the pytorch model to onnx """
@@ -93,7 +93,7 @@ def export_to_onnx():
     model = signclassifier()
     model.load_state_dict(torch.load("saves/handsign.pt"))
     model.eval()
-    input = sign_collection[2000][1]
+    input = sign_collection[0][1]
     torch_out = model(input)
 
     torch.onnx.export(
