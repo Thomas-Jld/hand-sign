@@ -4,17 +4,15 @@ import torch
 
 SIGNS = {
     "0": "OK",
-    "1": "THUMB_UP",
+    "1": "THUMB",
     "2": "TWO",
     "3": "THREE",
     "4": "SPIDERMAN",
     "5": "OPEN_HAND",
     "6": "FIST",
     "7": "PINCH",
-    "8": "THUMB_DOWN",
+    "8": "MIDDLE",
     "9": "INDEX",
-    "10": "MIDDLE",
-    "11": "LITTLE",
 }
 
 
