@@ -82,7 +82,7 @@ def train(epochs = 100):
             best_acc = acc
     # torch.save(model.state_dict(), f"saves/best.pt")
 
-train(300)
+train(50)
 
 def export_to_onnx():
     """ Exports the pytorch model to onnx """

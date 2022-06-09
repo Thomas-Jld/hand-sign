@@ -26,13 +26,18 @@ class SignCollection(Dataset):
         center = self.data[idx]["center"]
         max_hori_scale = min(center[0]/(center[0] - horizontal_min), (1 - center[0])/(horizontal_max - center[0]))
         max_vert_scale = min(center[1]/(center[1] - vertical_min), (1 - center[1])/(vertical_max - center[1]))
-        scale = random.uniform(
+        x_scale = random.uniform(
             0.1, min(max_hori_scale, max_vert_scale)
         )
+        if random.random() > 0.5:
+            y_scale = random.uniform(0.75, 1) * x_scale
+        else:
+            y_scale = x_scale
+            x_scale = random.uniform(0.75, 1) * y_scale
         data = [
             [
-                (point[0] - center[0]) * scale + center[0],
-                (point[1] - center[1]) * scale + center[1],
+                (point[0] - center[0]) * x_scale + center[0],
+                (point[1] - center[1]) * y_scale + center[1],
             ]
             for point in data
         ]
